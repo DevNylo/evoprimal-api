@@ -1,10 +1,10 @@
 import path from 'path';
 
 export default ({ env }) => {
-  // Verifica se estamos rodando no Render (Produção)
+  // O Render define NODE_ENV como 'production' automaticamente
   if (env('NODE_ENV') === 'production') {
     const parse = require('pg-connection-string').parse;
-    const config = parse(env('DATABASE_URL')); // Lê a URL que você pegou
+    const config = parse(env('DATABASE_URL')); // Lê a URL do Postgres
 
     return {
       connection: {
@@ -16,7 +16,7 @@ export default ({ env }) => {
           user: config.user,
           password: config.password,
           ssl: {
-            rejectUnauthorized: false, // Obrigatório para o Render aceitar a conexão
+            rejectUnauthorized: false, // CRÍTICO para o Render
           },
         },
         debug: false,
@@ -24,7 +24,7 @@ export default ({ env }) => {
     };
   }
 
-  // Se não for produção, usa o SQLite local (seu PC)
+  // Configuração Local (Seu PC)
   return {
     connection: {
       client: 'sqlite',
