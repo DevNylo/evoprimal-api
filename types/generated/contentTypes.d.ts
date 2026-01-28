@@ -957,9 +957,14 @@ export interface PluginUsersPermissionsUser
   attributes: {
     address: Schema.Attribute.Text & Schema.Attribute.Required;
     blocked: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    cep: Schema.Attribute.String & Schema.Attribute.Required;
+    city: Schema.Attribute.String & Schema.Attribute.Required;
+    complement: Schema.Attribute.String & Schema.Attribute.Required;
     confirmationToken: Schema.Attribute.String & Schema.Attribute.Private;
     confirmed: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
-    cpf: Schema.Attribute.String & Schema.Attribute.Required;
+    cpf: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -974,6 +979,8 @@ export interface PluginUsersPermissionsUser
       'plugin::users-permissions.user'
     > &
       Schema.Attribute.Private;
+    neighborhood: Schema.Attribute.String & Schema.Attribute.Required;
+    number: Schema.Attribute.String & Schema.Attribute.Required;
     password: Schema.Attribute.Password &
       Schema.Attribute.Private &
       Schema.Attribute.SetMinMaxLength<{
@@ -987,6 +994,8 @@ export interface PluginUsersPermissionsUser
       'manyToOne',
       'plugin::users-permissions.role'
     >;
+    state: Schema.Attribute.String & Schema.Attribute.Required;
+    street: Schema.Attribute.String & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

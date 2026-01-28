@@ -76,6 +76,35 @@
     },
     "cpf": {
       "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "cep": {
+      "type": "string",
+      "required": true
+    },
+    "street": {
+      "type": "string",
+      "required": true
+    },
+    "number": {
+      "type": "string",
+      "required": true
+    },
+    "neighborhood": {
+      "type": "string",
+      "required": true
+    },
+    "city": {
+      "type": "string",
+      "required": true
+    },
+    "state": {
+      "type": "string",
+      "required": true
+    },
+    "complement": {
+      "type": "string",
       "required": true
     }
   }
