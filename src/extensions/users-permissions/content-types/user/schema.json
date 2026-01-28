@@ -67,10 +67,16 @@
       "configurable": false
     },
     "address": {
-      "type": "text"
+      "type": "text",
+      "required": true
     },
     "phone": {
-      "type": "string"
+      "type": "string",
+      "required": true
+    },
+    "cpf": {
+      "type": "string",
+      "required": true
     }
   }
 }
