@@ -24,8 +24,8 @@ export default ({ env }) => ({
         apiKey: env('RESEND_API_KEY'), // Pega do arquivo .env
       },
       settings: {
-        defaultFrom: 'onboarding@resend.dev',
-        defaultReplyTo: 'onboarding@resend.dev',
+        defaultFrom: 'noreply@send.evoprimal.com.br',
+        defaultReplyTo: 'noreply@send.evoprimal.com.br',
       },
     },
   },
