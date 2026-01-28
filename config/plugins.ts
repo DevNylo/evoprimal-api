@@ -1,4 +1,5 @@
 export default ({ env }) => ({
+  // --- CONFIGURAÇÃO DE UPLOAD (CLOUDINARY) ---
   upload: {
     config: {
       provider: 'cloudinary',
@@ -11,6 +12,20 @@ export default ({ env }) => ({
         upload: {},
         uploadStream: {},
         delete: {},
+      },
+    },
+  },
+
+  // --- CONFIGURAÇÃO DE E-MAIL (RESEND) - ADICIONADO ---
+  email: {
+    config: {
+      provider: 'strapi-provider-email-resend',
+      providerOptions: {
+        apiKey: env('RESEND_API_KEY'), // Pega do arquivo .env
+      },
+      settings: {
+        defaultFrom: 'onboarding@resend.dev',
+        defaultReplyTo: 'onboarding@resend.dev',
       },
     },
   },
