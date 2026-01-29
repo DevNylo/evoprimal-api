@@ -68,44 +68,44 @@
     },
     "full_name": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "phone": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "cpf": {
       "type": "string",
-      "required": true,
+      "required": false,
       "unique": true
     },
     "cep": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "street": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "number": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "neighborhood": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "city": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "state": {
       "type": "string",
-      "required": true
+      "required": false
     },
     "complement": {
       "type": "string",
-      "required": true
+      "required": false
     }
   }
 }
