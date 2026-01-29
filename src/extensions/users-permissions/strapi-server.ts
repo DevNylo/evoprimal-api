@@ -1,43 +1,53 @@
-// src/extensions/users-permissions/strapi-server.ts
+// -----------------------------------------------------------------------------
+// SINAL DE FUMAÇA 1: Se isso não aparecer no log, o Render não compilou o arquivo.
+console.log("🔥 [SYSTEM] O arquivo strapi-server.ts foi CARREGADO pelo Node.js!");
+// -----------------------------------------------------------------------------
 
 module.exports = (plugin: any) => {
-  // 1. Guardamos a função original (que sabe criar usuário e mandar e-mail)
+  // SINAL DE FUMAÇA 2: Se isso não aparecer, o Strapi ignorou a exportação.
+  console.log("🔥 [SYSTEM] Inicializando extensão do plugin Users-Permissions...");
+
   const originalRegister = plugin.controllers.auth.register;
 
-  // 2. SUBSTITUÍMOS a função 'register' pela nossa versão turbinada.
-  // Mantemos o mesmo nome para não dar erro de "Handler not found".
+  // Substituição do Controller
   plugin.controllers.auth.register = async (ctx: any) => {
-    console.log("🔥 [REGISTER] Interceptado com sucesso!");
+    console.log("🔥 [REGISTER] Requisição interceptada!");
 
-    // A. Captura os dados extras (CPF, Rua, etc)
+    // 1. Captura e Limpeza
     const { email, username, password, ...customFields } = ctx.request.body;
+    
+    // Log para debug (ver o que chegou)
+    console.log(`🔥 [DEBUG] Dados extras recebidos: ${Object.keys(customFields).join(', ')}`);
 
-    // B. Limpa o corpo da requisição. 
-    // Isso engana o validador original do Strapi, evitando o erro 400.
+    // Limpa o body para o Strapi aceitar
     ctx.request.body = { email, username, password };
 
     try {
-      // C. Chama o original (que agora aceita os dados "limpos")
+      // 2. Registro Original (Cria User + Manda Email)
       await originalRegister(ctx);
     } catch (err) {
       console.error("🔥 [ERRO] Falha no registro original:", err);
       throw err;
     }
 
-    // D. Se o usuário foi criado, salvamos os dados extras
+    // 3. Salva os dados extras
     if (ctx.response.status === 200 && ctx.response.body.user) {
       const userId = ctx.response.body.user.id;
-      
-      console.log(`🔥 [SUCESSO] Usuário ${userId} criado. Salvando CPF/Endereço...`);
+      console.log(`🔥 [SUCESSO] User ${userId} criado. Gravando extras...`);
 
-      // O entityService salva direto no banco, ignorando validações de rota
-      await strapi.entityService.update('plugin::users-permissions.user', userId, {
-        data: customFields
-      });
-
-      // Busca o usuário atualizado para devolver ao Frontend
-      const updatedUser = await strapi.entityService.findOne('plugin::users-permissions.user', userId);
-      ctx.response.body.user = updatedUser;
+      try {
+        await strapi.entityService.update('plugin::users-permissions.user', userId, {
+            data: customFields
+        });
+        
+        // Atualiza retorno
+        const updatedUser = await strapi.entityService.findOne('plugin::users-permissions.user', userId);
+        ctx.response.body.user = updatedUser;
+        console.log("🔥 [SUCESSO] Tudo salvo!");
+      } catch (saveError) {
+         console.error("🔥 [ERRO] Falha ao salvar dados extras:", saveError);
+         // Não damos throw aqui para não cancelar o cadastro, apenas logamos o erro de perfil
+      }
     }
   };
 
