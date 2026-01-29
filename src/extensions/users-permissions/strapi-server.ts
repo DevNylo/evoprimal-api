@@ -1,42 +1,49 @@
 // src/extensions/users-permissions/strapi-server.ts
 
-// MANTENHA O LOG PARA SABERMOS SE FUNCIONOU
-console.log("🔥 [DIAGNOSTICO] ARQUIVO CARREGADO! O Strapi leu sua extensão.");
+export default (plugin: any) => {
+  console.log("🔥 [SUCESSO] Extensão carregada! Pronto para interceptar cadastros.");
 
-module.exports = (plugin: any) => {
   const originalRegister = plugin.controllers.auth.register;
 
   plugin.controllers.auth.register = async (ctx: any) => {
-    console.log("🔥 [DIAGNOSTICO] Rota /register acessada. Limpando dados...");
+    console.log("🔥 [REGISTER] 1. Nova tentativa de cadastro recebida.");
 
-    // 1. Separa os dados extras (CPF, Rua, etc)
+    // 1. CAPTURA E LIMPEZA
+    // Separamos o que é do Strapi (email/user/pass) do que é nosso (customFields)
     const { email, username, password, ...customFields } = ctx.request.body;
 
-    // 2. Limpa o corpo da requisição para o Strapi Original não reclamar
+    // AQUI ESTÁ O SEGREDO:
+    // Substituímos o corpo da requisição apenas pelo que o Strapi original aceita.
+    // Isso IMPEDE o erro "Invalid parameters".
     ctx.request.body = { email, username, password };
 
     try {
-      // 3. Chama o registro original (cria usuário + envia email)
+      // 2. CRIAÇÃO DO USUÁRIO (E ENVIO DE E-MAIL)
+      // Chamamos o registro original. Como o body está limpo, ele não vai reclamar.
       await originalRegister(ctx);
     } catch (err) {
-      console.error("🔥 [ERRO] Falha no registro original:", err);
+      console.error("🔥 [ERRO] O registro original falhou:", err);
       throw err;
     }
 
-    // 4. Se chegou aqui, o usuário foi criado. Vamos salvar os extras.
+    // 3. SALVAMENTO DOS DADOS EXTRAS
+    // Se o usuário foi criado com sucesso (status 200), salvamos o resto.
     if (ctx.response.status === 200 && ctx.response.body.user) {
       const userId = ctx.response.body.user.id;
       
-      console.log(`🔥 [SUCESSO] Usuário ${userId} criado. Salvando CPF/Endereço...`);
+      console.log(`🔥 [REGISTER] 2. Usuário ID ${userId} criado! Salvando dados extras (CPF, Endereço)...`);
 
-      // Usa entityService para pular validação de "user confirmed"
+      // Usamos o entityService para atualizar o usuário.
+      // Ele ignora validações de rota e permissões, gravando direto no banco.
       await strapi.entityService.update('plugin::users-permissions.user', userId, {
         data: customFields
       });
 
-      // Atualiza o retorno para o frontend
+      // Buscamos os dados atualizados para devolver ao Frontend já com tudo preenchido
       const updatedUser = await strapi.entityService.findOne('plugin::users-permissions.user', userId);
       ctx.response.body.user = updatedUser;
+      
+      console.log("🔥 [REGISTER] 3. Sucesso total! Dados salvos.");
     }
   };
 
