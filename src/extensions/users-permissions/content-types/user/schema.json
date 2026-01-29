@@ -66,8 +66,8 @@
       "inversedBy": "users",
       "configurable": false
     },
-    "address": {
-      "type": "text",
+    "full_name": {
+      "type": "string",
       "required": true
     },
     "phone": {
