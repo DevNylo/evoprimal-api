@@ -42,18 +42,21 @@ export default {
     return newCustomer.id;
   },
 
-  // Recebe o billingType para travar a forma de pagamento
   async createPaymentLink(customerId: string, value: number, description: string, billingType = "UNDEFINED") {
     const api = getClient();
 
     const { data: payment } = await api.post('/payments', {
       customer: customerId,
-      billingType: billingType, // Aqui a mágica da segurança acontece
+      billingType: billingType,
       value: value,
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 dias
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 dias de validade
       description: description,
     });
 
-    return payment.invoiceUrl;
+    // RETORNO ATUALIZADO: Devolve ID e URL
+    return { 
+        id: payment.id, 
+        url: payment.invoiceUrl 
+    };
   }
 };
