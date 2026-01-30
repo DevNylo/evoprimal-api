@@ -106,6 +106,12 @@
     "complement": {
       "type": "string",
       "required": false
+    },
+    "orders": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::order.order",
+      "mappedBy": "user"
     }
   }
 }
