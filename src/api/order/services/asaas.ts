@@ -1,4 +1,3 @@
-// src/api/order/services/asaas.ts
 import axios from 'axios';
 
 const getClient = () => {
@@ -22,8 +21,8 @@ export default {
   async createCustomer(user: any) {
     const api = getClient();
 
-    // 1. Tenta achar o cliente pelo CPF/Email para não duplicar no Asaas
     try {
+      // Evita duplicidade no Asaas buscando pelo CPF
       const { data: existing } = await api.get(`/customers?cpfCnpj=${user.cpf}`);
       if (existing.data && existing.data.length > 0) {
         return existing.data[0].id;
@@ -32,7 +31,6 @@ export default {
       console.log("Cliente não encontrado, criando novo...");
     }
 
-    // 2. Cria novo cliente se não achar
     const { data: newCustomer } = await api.post('/customers', {
       name: user.full_name,
       email: user.email,
@@ -44,17 +42,18 @@ export default {
     return newCustomer.id;
   },
 
-  async createPaymentLink(customerId: string, value: number, description: string) {
+  // Recebe o billingType para travar a forma de pagamento
+  async createPaymentLink(customerId: string, value: number, description: string, billingType = "UNDEFINED") {
     const api = getClient();
 
     const { data: payment } = await api.post('/payments', {
       customer: customerId,
-      billingType: "UNDEFINED", // Deixa o cliente escolher (Pix, Boleto, Cartão) na tela do Asaas
+      billingType: billingType, // Aqui a mágica da segurança acontece
       value: value,
-      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Vence em 2 dias
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 dias
       description: description,
     });
 
-    return payment.invoiceUrl; // Retorna o LINK de pagamento
+    return payment.invoiceUrl;
   }
 };

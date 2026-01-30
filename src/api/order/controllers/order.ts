@@ -6,72 +6,98 @@ import asaasService from '../services/asaas';
 export default ({ strapi }: { strapi: any }) => ({
   
   async checkout(ctx: any) {
-    const { cart, userId } = ctx.request.body;
+    const { cart, userId, paymentMethod } = ctx.request.body;
 
+    // Validações básicas
     if (!cart || cart.length === 0) return ctx.badRequest("Carrinho vazio");
 
     const user = await strapi.entityService.findOne('plugin::users-permissions.user', userId);
     if (!user) return ctx.badRequest("Usuário não encontrado");
-    if (!user.cpf) return ctx.badRequest("CPF Obrigatório");
+    if (!user.cpf) return ctx.badRequest("CPF Obrigatório no perfil");
 
+    // --- CÁLCULO SEGURO DO TOTAL (Busca preço no Banco) ---
     let total = 0;
     const descriptionItems = [];
 
     for (const item of cart) {
         const qtd = Number(item.quantity) || 1;
-        const price = Number(item.price) || 0;
-        total += price * qtd;
-        descriptionItems.push(`${qtd}x ${item.name}`);
+        
+        // 🔒 SEGURANÇA MÁXIMA: Buscamos o produto no banco pelo ID
+        // Ajuste 'api::produto.produto' se o nome da sua collection for diferente
+        const dbProduct = await strapi.entityService.findOne('api::produto.produto', item.id);
+
+        if (!dbProduct) {
+            return ctx.badRequest(`O produto "${item.name}" (ID: ${item.id}) não está mais disponível.`);
+        }
+
+        // Usamos o preço do BANCO (preco), ignorando o que veio do frontend
+        const realPrice = Number(dbProduct.preco); 
+        
+        total += realPrice * qtd;
+        descriptionItems.push(`${qtd}x ${dbProduct.nome}`);
+    }
+
+    // --- LÓGICA DE DESCONTO E TRAVA DO ASAAS ---
+    let finalTotal = total;
+    let billingType = 'UNDEFINED';
+
+    if (paymentMethod === 'PIX_BOLETO') {
+        // Aplica 5% de desconto
+        finalTotal = total * 0.95; 
+        billingType = 'BOLETO'; // Trava no Asaas (Boleto + Pix)
+    } else {
+        // Preço Cheio
+        finalTotal = total;
+        billingType = 'CREDIT_CARD'; // Trava no Asaas (Só Cartão)
     }
 
     try {
-        // --- 1. GERADOR DE CÓDIGO (EVP0000X) ---
+        // --- GERADOR DE CÓDIGO (EVP0000X) ---
         const count = await strapi.entityService.count('api::order.order');
-        const nextId = count + 1;
-        const orderCode = `EVP${String(nextId).padStart(5, '0')}`; // Gera EVP00001
+        const orderCode = `EVP${String(count + 1).padStart(5, '0')}`;
 
-        console.log(`🎫 Código Gerado: ${orderCode}`);
+        console.log(`🔐 Pedido Seguro: ${orderCode} | Total Real: ${finalTotal}`);
 
-        // --- 2. INTEGRAÇÃO ASAAS ---
+        // --- INTEGRAÇÃO ASAAS ---
         const asaasCustomerId = await asaasService.createCustomer(user);
+        
         const paymentLink = await asaasService.createPaymentLink(
             asaasCustomerId, 
-            total, 
-            `Pedido ${orderCode} - EvoPrimal`
+            finalTotal, 
+            `Pedido ${orderCode} - EvoPrimal`,
+            billingType // Envia a trava de pagamento
         );
 
-        // --- 3. SALVAR NO BANCO ---
+        // --- SALVAR NO BANCO ---
+        // Aqui salvamos os produtos do carrinho apenas para histórico visual
+        // Mas o valor financeiro (total) foi calculado pelo backend
         await strapi.entityService.create('api::order.order', { 
             data: {
                 user: userId,
-                total: total,
+                total: finalTotal,
                 status_payment: 'pending', 
                 asaas_link: paymentLink,
-                products: cart,
-                order_code: orderCode // Salva o código novo
+                products: cart, // JSON com os itens visuais
+                order_code: orderCode
             }
         });
 
-        // Retorna o link e o código
         return { paymentUrl: paymentLink, orderCode: orderCode };
 
     } catch (error: any) {
         console.error("❌ Erro no Checkout:", error);
-        return ctx.internalServerError("Erro no processamento.");
+        // Retorna erro detalhado se for problema no Asaas
+        return ctx.internalServerError(error.response?.data?.errors?.[0]?.description || "Erro ao processar pagamento.");
     }
   },
   
-  // --- MÉTODO DE BUSCA CORRIGIDO ---
+  // --- MÉTODOS PADRÃO ---
   async find(ctx: any) { 
     const user = ctx.state.user;
     if (!user) return ctx.unauthorized();
-
     const { query } = ctx;
-    // Filtra apenas pedidos DO usuário logado
     query.filters = { ...query.filters, user: { id: user.id } };
-    query.sort = { createdAt: 'desc' }; // Ordena do mais novo para o mais antigo
-    
-    // Retorna direto a lista (Array) para o frontend
+    query.sort = { createdAt: 'desc' };
     return strapi.entityService.findMany('api::order.order', query);
   },
   
